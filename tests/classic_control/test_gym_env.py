@@ -42,9 +42,7 @@ def test_step(gym_env_name):
 
             # Check that post-transition states are equal
             if not done_gym:
-                assert_correct_state(
-                    env_gym, gym_env_name, state_jax, tolerance
-                )
+                assert_correct_state(env_gym, gym_env_name, state_jax, tolerance)
             else:
                 break
 
