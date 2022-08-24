@@ -100,12 +100,12 @@ class MultistoryFourRooms(environment.Environment):
         self.downstairs = jnp.array([-1, *(NE - SW)])  # Move from SW on floor 1 to NE on floor 0
 
         # Any open space in the map can be a goal for the agent
-        self.available_goals = self.coords[self.coords[:, 0] == num_floors]
+        self.available_goals = self.coords[self.coords[:, 0] == (num_floors - 1)]
         self.available_agent_spawns = self.coords[self.coords[:, 0] == 0]
 
         # Set fixed goal and position if we don't resample each time
-        self.goal_fixed = jnp.array([num_floors - 1, goal_fixed])
-        self.pos_fixed = jnp.array([0, pos_fixed])
+        self.goal_fixed = jnp.array([num_floors - 1, *goal_fixed])
+        self.pos_fixed = jnp.array([0, *pos_fixed])
 
         # Observation function
         self.obs_fn = obs_type
@@ -136,9 +136,11 @@ class MultistoryFourRooms(environment.Environment):
         map_val = self.env_map[new_pos[0], new_pos[1], new_pos[2]]
         go_down = (map_val == 2) & moved
         go_up = (map_val == 3) & moved
-        new_pos = new_pos.at[go_down].add(self.downstairs)
-        new_pos = new_pos.at[go_up].add(self.upstairs)
-        reward = jnp.all(new_pos == state.goal, axis=-1)
+        new_pos = jnp.where(go_down, new_pos + self.downstairs, new_pos)
+        new_pos = jnp.where(go_up, new_pos + self.upstairs, new_pos)
+        # new_pos = new_pos.at[go_down].add(self.downstairs)
+        # new_pos = new_pos.at[go_up].add(self.upstairs)
+        reward = jnp.all(new_pos == state.goal, axis=-1).astype(float)
 
         # Update state dict and evaluate termination conditions
         state = EnvState(new_pos, state.goal, state.time + 1)
@@ -159,10 +161,10 @@ class MultistoryFourRooms(environment.Environment):
         rng_goal, rng_pos = jax.random.split(key, 2)
         # Only use resampled position if specified in EnvParams
         goal = jax.lax.select(
-            params.resample_goal_pos, reset_goal(rng_goal, self.available_goals, params), self.goal_fixed
+            params.resample_goal_pos, reset_goal(rng_goal, self.available_goals), self.goal_fixed
         )
 
-        pos = jax.lax.select(params.resample_init_pos, reset_pos(rng_pos, self.coords, goal), self.pos_fixed)
+        pos = jax.lax.select(params.resample_init_pos, reset_pos(rng_pos, self.available_agent_spawns, goal), self.pos_fixed)
         state = EnvState(pos, goal, 0)
         return self.get_obs(state), state
 
@@ -192,17 +194,14 @@ class MultistoryFourRooms(environment.Environment):
         # Check number of steps in episode termination condition
         done_steps = state.time >= params.max_steps_in_episode
         # Check if agent has found the goal
-        done_goal = jnp.logical_and(
-            state.pos[0] == state.goal[0],
-            state.pos[1] == state.goal[1],
-        )
+        done_goal = jnp.all(state.pos == state.goal)
         done = jnp.logical_or(done_goal, done_steps)
         return done
 
     @property
     def name(self) -> str:
         """Environment name."""
-        return "FourRooms-misc"
+        return "MultistoryFourRooms-misc"
 
     @property
     def num_actions(self) -> int:
@@ -270,7 +269,7 @@ class MultistoryFourRooms(environment.Environment):
 
 
 def reset_goal(
-    rng: chex.PRNGKey, available_goals: chex.Array, params: EnvParams
+    rng: chex.PRNGKey, available_goals: chex.Array
 ) -> chex.Array:
     """Reset the goal state/position in the environment."""
     goal_index = jax.random.randint(rng, (), 0, available_goals.shape[0])
@@ -283,8 +282,6 @@ def reset_pos(
 ) -> chex.Array:
     """Reset the position of the agent."""
     pos_index = jax.random.randint(rng, (), 0, coords.shape[0] - 1)
-    collision = jnp.logical_and(
-        coords[pos_index][0] == goal[0], coords[pos_index][1] == goal[1]
-    )
+    collision = jnp.all(coords[pos_index] == goal)
     pos_index = jax.lax.select(collision, coords.shape[0] - 1, pos_index)
     return coords[pos_index][:]
