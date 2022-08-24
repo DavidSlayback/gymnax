@@ -52,11 +52,11 @@ def string_to_bool_map(str_map: str) -> chex.Array:
 
 def bool_map_to_multistory(map: chex.Array, num_floors: int = 1) -> chex.Array:
     """Convert boolean walking map into multistory layout"""
-    int_map = map.astype(int)  # 0 wall, 1 empty, 2 stairs
+    int_map = map.astype(int)  # 0 wall, 1 empty, 2 stairs down, 3 stairs up
     ms = jnp.stack([int_map for _ in range(num_floors)], 0)  # z, y, x
     if num_floors > 1:
         ms = ms.at[1:, downstairs].set(2)
-        ms = ms.at[:-1, upstairs].set(2)
+        ms = ms.at[:-1, upstairs].set(3)
     return ms
 
 
@@ -68,17 +68,6 @@ def coords_to_flat(coords: chex.Array, dims: chex.Array) -> int:
 def flat_to_coords(flat: int, dims: chex.Array) -> chex.Array:
     """Convert flat coordinates to (z), y, x"""
     return jnp.array(jnp.unravel_index(flat, dims))
-
-
-def full_vector_obs(s: EnvState) -> chex.Array:
-    """Vector with agent and goal positions"""
-    return jnp.array([*s.pos, *s.goal])
-
-
-def adjacent_obs(s: EnvState, env_map: chex.Array, directions: chex.Array) -> chex.Array:
-    """Vector of adjacent squares (empty/wall/stairs/goal)"""
-    a_pos, g_pos = s.pos, s.goal
-    coords = a_pos[None, :] + directions  # [4,3]
 
 
 class MultistoryFourRooms(environment.Environment):
@@ -93,25 +82,33 @@ class MultistoryFourRooms(environment.Environment):
 
         Args:
             num_floors: number of stories
+            obs_type: one of 'discrete', 'vector_mdp', 'visual', 'adjacent', 'grid'
             goal_fixed: y,x position (always top floor)
             pos_fixed: y,x position of agent (always bottom floor)
         """
+        assert num_floors >= 1, "Must have at least 1 floor!"
+        assert obs_type in ['vector_mdp', 'adjacent', 'grid', 'visual', '']
         super().__init__()
         self.env_map = bool_map_to_multistory(string_to_bool_map(four_rooms_map), num_floors)
         self.valid_map = (self.env_map == 0)  # Agent can go anywhere without a wall
         self.spawn_map = (self.env_map == 1)  # Agent cannot spawn on stairs
         self.occupied_map = (self.env_map == 0)
+        self.coord_to_state_map = jnp.cumsum(self.occupied_map).reshape(self.occupied_map.shape)
         self.coords = jnp.stack(jnp.nonzero(self.spawn_map), axis=-1)
         self.directions = jnp.array([[0, -1, 0], [0, 0, 1], [0, 1, 0], [0, 0, -1]])
+        self.upstairs = jnp.array([1, *(SW - NE)])  # Move from NE on floor 1 to SW on floor 2
+        self.downstairs = jnp.array([-1, *(NE - SW)])  # Move from SW on floor 1 to NE on floor 0
 
         # Any open space in the map can be a goal for the agent
         self.available_goals = self.coords[self.coords[:, 0] == num_floors]
         self.available_agent_spawns = self.coords[self.coords[:, 0] == 0]
 
         # Set fixed goal and position if we don't resample each time
-        self.goal_fixed = jnp.array([num_floors, goal_fixed])
+        self.goal_fixed = jnp.array([num_floors - 1, goal_fixed])
         self.pos_fixed = jnp.array([0, pos_fixed])
-        self.obs_fn
+
+        # Observation function
+        self.obs_fn = obs_type
 
     @property
     def default_params(self) -> EnvParams:
@@ -132,8 +129,15 @@ class MultistoryFourRooms(environment.Environment):
         )
 
         p = state.pos + self.directions[action]
-        in_map = self.env_map[p[0], p[1], p[2]]
+        in_map = self.env_map[p[0], p[1], p[2]] > 0
         new_pos = jax.lax.select(in_map, p, state.pos)
+        # Process stairs
+        moved = jnp.any(new_pos != p, -1)  # Only use stairs if we had to move to this square
+        map_val = self.env_map[new_pos[0], new_pos[1], new_pos[2]]
+        go_down = (map_val == 2) & moved
+        go_up = (map_val == 3) & moved
+        new_pos = new_pos.at[go_down].add(self.downstairs)
+        new_pos = new_pos.at[go_up].add(self.upstairs)
         reward = jnp.all(new_pos == state.goal, axis=-1)
 
         # Update state dict and evaluate termination conditions
@@ -163,21 +167,25 @@ class MultistoryFourRooms(environment.Environment):
         return self.get_obs(state), state
 
     def get_obs(self, state: EnvState) -> chex.Array:
-        """Return observation from raw state trafo."""
-        if not self.use_visual_obs:
-            return jnp.array(
-                [
-                    state.pos[0],
-                    state.pos[1],
-                    state.goal[0],
-                    state.goal[1],
-                ]
-            )
-        else:
+        """Return observation from raw state info."""
+        if self.obs_fn == 'vector_mdp':  # zyx positions of agent and goal
+            return jnp.array([*state.pos, *state.goal])
+        elif self.obs_fn == 'discrete_mdp':  # classic discrete observation, no goal (must assume fixed)
+            return self.coord_to_state_map[state.pos[0], state.pos[1], state.pos[2]]
+        elif self.obs_fn == 'adjacent':  # wall/empty/stairdown/stairup for adjacent squares
+            adj = state.pos + self.directions  # [directions, 3]
+            o = self.env_map[tuple(adj.T)]  # [directions,]
+            return o.at[jnp.all(adj == state.goal, -1)].set(4)  # Fill in goal
+        elif self.obs_fn == 'visual':  # Visual obs. Note inversion of y and x coordinates
             agent_map = jnp.zeros(self.occupied_map.shape)
-            agent_map = agent_map.at[state.pos[1], state.pos[0]].set(1)
-            obs_array = jnp.stack([self.occupied_map, agent_map], axis=2)
+            agent_map = agent_map.at[state.pos[0], state.pos[2], state.pos[1]].set(1)
+            obs_array = jnp.stack([self.occupied_map, agent_map], axis=-1)
             return obs_array
+        else:  # 3x3 grid centered on agent
+            adj = state.pos + jnp.mgrid[:1, -1:2, -1:2]  # [3, 1, 3, 3]
+            env_map_with_goal = self.env_map.at[state.goal].set(4)  # TODO: Inefficient
+            return jnp.squeeze(env_map_with_goal[tuple(adj)])  # [3, 3]
+
 
     def is_terminal(self, state: EnvState, params: EnvParams) -> bool:
         """Check whether state is terminal."""
@@ -209,12 +217,12 @@ class MultistoryFourRooms(environment.Environment):
 
     def observation_space(self, params: EnvParams) -> spaces.Box:
         """Observation space of the environment."""
-        if self.use_visual_obs:
-            return spaces.Box(0, 1, (13, 13, 2), jnp.float32)
-        else:
-            return spaces.Box(
-                jnp.min(self.coords), jnp.max(self.coords), (4,), jnp.float32
-            )
+        if self.obs_fn == 'vector_mdp': return spaces.Box(jnp.min(self.coords), jnp.max(self.coords), (6,), jnp.int32)
+        elif self.obs_fn == 'discrete_mdp': spaces.Discrete(self.coord_to_state_map.max())
+        elif self.obs_fn == 'adjacent': return spaces.Box(0, 5, (4,), jnp.int32)
+        elif self.obs_fn == 'visual': return spaces.Box(0, 1, (13, 13, 2), jnp.float32)
+        else: return spaces.Box(0, 5, (3,3), jnp.int32)
+
 
     def state_space(self, params: EnvParams) -> spaces.Dict:
         """State space of the environment."""
@@ -223,14 +231,14 @@ class MultistoryFourRooms(environment.Environment):
                 "pos": spaces.Box(
                     jnp.min(self.coords),
                     jnp.max(self.coords),
-                    (2,),
-                    jnp.float32,
+                    (3,),
+                    jnp.int32,
                 ),
                 "goal": spaces.Box(
                     jnp.min(self.coords),
                     jnp.max(self.coords),
-                    (2,),
-                    jnp.float32,
+                    (3,),
+                    jnp.int32,
                 ),
                 "time": spaces.Discrete(params.max_steps_in_episode),
             }
@@ -245,16 +253,16 @@ class MultistoryFourRooms(environment.Environment):
         ax.annotate(
             "A",
             fontsize=20,
-            xy=(state.pos[1], state.pos[0]),
+            xy=(state.pos[2], state.pos[1]),
             xycoords="data",
-            xytext=(state.pos[1] - 0.3, state.pos[0] + 0.25),
+            xytext=(state.pos[2] - 0.3, state.pos[1] + 0.25),
         )
         ax.annotate(
             "G",
             fontsize=20,
-            xy=(state.goal[1], state.goal[0]),
+            xy=(state.goal[2], state.goal[1]),
             xycoords="data",
-            xytext=(state.goal[1] - 0.3, state.goal[0] + 0.25),
+            xytext=(state.goal[2] - 0.3, state.goal[1] + 0.25),
         )
         ax.set_xticks([])
         ax.set_yticks([])
