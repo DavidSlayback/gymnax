@@ -30,6 +30,7 @@ from .misc import (
     FourRooms,
     MetaMaze,
     PointRobot,
+    MultistoryFourRooms,
 )
 
 

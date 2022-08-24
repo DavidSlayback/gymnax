@@ -21,6 +21,7 @@ from .environments import (
     FourRooms,
     MetaMaze,
     PointRobot,
+    MultistoryFourRooms,
 )
 
 # =============================================================================
@@ -78,6 +79,8 @@ def make(env_id: str, **env_kwargs):
         env = GaussianBandit(**env_kwargs)
     elif env_id == "FourRooms-misc":
         env = FourRooms(**env_kwargs)
+    elif env_id == "MultistoryFourRooms-misc":
+        env = MultistoryFourRooms(**env_kwargs)
     elif env_id == "MetaMaze-misc":
         env = MetaMaze(**env_kwargs)
     elif env_id == "PointRobot-misc":
@@ -112,4 +115,5 @@ registered_envs = [
     "PointRobot-misc",
     "BernoulliBandit-misc",
     "GaussianBandit-misc",
+    "MultistoryFourRooms-misc"
 ]
