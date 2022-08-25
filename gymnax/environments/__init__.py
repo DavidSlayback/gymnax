@@ -33,6 +33,9 @@ from .misc import (
     MultistoryFourRooms,
 )
 
+from .pomdps import (
+    Tiger
+)
 
 __all__ = [
     "Pendulum",
@@ -57,4 +60,5 @@ __all__ = [
     "FourRooms",
     "MetaMaze",
     "PointRobot",
+    "Tiger"
 ]

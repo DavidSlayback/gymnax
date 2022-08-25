@@ -22,6 +22,7 @@ from .environments import (
     MetaMaze,
     PointRobot,
     MultistoryFourRooms,
+    Tiger
 )
 
 # =============================================================================
@@ -85,6 +86,10 @@ def make(env_id: str, **env_kwargs):
         env = MetaMaze(**env_kwargs)
     elif env_id == "PointRobot-misc":
         env = PointRobot(**env_kwargs)
+
+    # 5. POMDPs
+    elif env_id == "Tiger-pomdp":
+        env = Tiger(**env_kwargs)
     else:
         raise ValueError("Environment ID is not registered.")
 
@@ -115,5 +120,6 @@ registered_envs = [
     "PointRobot-misc",
     "BernoulliBandit-misc",
     "GaussianBandit-misc",
-    "MultistoryFourRooms-misc"
+    "MultistoryFourRooms-misc",
+    "Tiger-pomdp"
 ]

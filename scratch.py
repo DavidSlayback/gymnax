@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 if __name__ == "__main__":
     B = 64  # batch size
-    env, env_params = gymnax.make('MultistoryFourRooms-misc', num_floors=1)
+    env, env_params = gymnax.make('Tiger-pomdp')
     rng = jax.random.PRNGKey(0)
     vmap_reset = jax.vmap(env.reset, in_axes=(0, None))
     vmap_step = jax.vmap(env.step, in_axes=(0, 0, 0, None))
