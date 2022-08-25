@@ -1,3 +1,5 @@
+# Classic Tiger problem
+
 import jax
 import jax.numpy as jnp
 from jax import lax
@@ -10,6 +12,7 @@ from flax import struct
 @struct.dataclass
 class EnvState:
     tiger: int  # 0 left, 1 right
+    time: int
 
 
 @struct.dataclass
@@ -40,10 +43,12 @@ class Tiger(environment.Environment):
         params: EnvParams,
     ) -> Tuple[int, EnvState, float, bool, dict]:
         """Listen or open door, suffer the consequences"""
+        s = EnvState(state.tiger, state.time + 1)
         d = jax.lax.select(action < 2, True, False)  # Done if we opened a door
+        d = jax.lax.select(s.time >= params.max_steps_in_episode, True, d)  # Done if exceeded time limit
         r = jax.lax.select(action == state.tiger, params.reward_tiger, params.reward_not_tiger)  # Door reward
         r = jax.lax.select(action == 2, params.reward_listen, r)  # listen reward
-        return self.get_obs(key, state, action, params), state, r, d, {}
+        return self.get_obs(key, s, action, params), state, r, d, {}
 
     def reset_env(
         self, key: chex.PRNGKey, params: EnvParams
@@ -79,7 +84,10 @@ class Tiger(environment.Environment):
         return spaces.Discrete(2)  # Hear tiger left or right
 
     def state_space(self, params: EnvParams):
-        return spaces.Discrete(2)  # Tiger left or right
+        return spaces.Dict({
+            'tiger': spaces.Discrete(2),
+            'time': spaces.Discrete(params.max_steps_in_episode)
+        })
 
 
 
