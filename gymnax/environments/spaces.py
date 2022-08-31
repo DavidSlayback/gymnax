@@ -12,13 +12,6 @@ class Space:
     Minimal jittable class for abstract gymnax space.
     """
 
-    def sample(self, rng: chex.PRNGKey) -> chex.Array:
-        raise NotImplementedError
-
-    def contains(self, x: jnp.int_) -> bool:
-        raise NotImplementedError
-
-
 class Discrete(Space):
     """
     Minimal jittable class for discrete gymnax spaces.
