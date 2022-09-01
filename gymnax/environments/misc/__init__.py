@@ -3,7 +3,7 @@ from .gaussian_bandit import GaussianBandit
 from .fourrooms import FourRooms
 from .meta_maze import MetaMaze
 from .point_robot import PointRobot
-from .multistory_rooms import MultistoryFourRooms
+from .multistory_fourrooms import MultistoryFourRooms
 
 __all__ = [
     "BernoulliBandit",

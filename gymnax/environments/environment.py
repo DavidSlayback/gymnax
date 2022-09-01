@@ -27,7 +27,7 @@ class Environment(object):
         self,
         key: chex.PRNGKey,
         state: EnvState,
-        action: Union[int, float],
+        action: Union[int, float, chex.Array],
         params: Optional[EnvParams] = None,
     ) -> Tuple[chex.Array, EnvState, float, bool, dict]:
         """Performs step transitions in the environment."""
@@ -35,9 +35,7 @@ class Environment(object):
         if params is None:
             params = self.default_params
         key, key_reset = jax.random.split(key)
-        obs_st, state_st, reward, done, info = self.step_env(
-            key, state, action, params
-        )
+        obs_st, state_st, reward, done, info = self.step_env(key, state, action, params)
         obs_re, state_re = self.reset_env(key_reset, params)
         # Auto-reset environment based on termination
         state = jax.tree_map(
@@ -61,7 +59,7 @@ class Environment(object):
         self,
         key: chex.PRNGKey,
         state: EnvState,
-        action: Union[int, float],
+        action: Union[int, float, chex.Array],
         params: EnvParams,
     ) -> Tuple[chex.Array, EnvState, float, bool, dict]:
         """Environment-specific step transition."""

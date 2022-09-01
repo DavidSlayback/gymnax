@@ -12,6 +12,13 @@ class Space:
     Minimal jittable class for abstract gymnax space.
     """
 
+    def sample(self, rng: chex.PRNGKey) -> chex.Array:
+        raise NotImplementedError
+
+    def contains(self, x: jnp.int_) -> bool:
+        raise NotImplementedError
+
+
 class Discrete(Space):
     """
     Minimal jittable class for discrete gymnax spaces.
@@ -123,8 +130,10 @@ class Tuple(Space):
         return out_of_space == 0
 
 
+from gym import spaces as gspc
+
+
 def gymnax_space_to_gym_space(space: Space) -> gspc.Space:
-    """Convert Gymnax space to equivalent Gym space"""
     if isinstance(space, Discrete):
         return gspc.Discrete(space.n)
     elif isinstance(space, Box):

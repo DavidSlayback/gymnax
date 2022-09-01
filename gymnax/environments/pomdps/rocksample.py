@@ -96,7 +96,6 @@ class RockSample(environment.Environment):
     def name(self) -> str:
         return f"RockSample-{self.map_size}-pomdp"
 
-
     def action_space(self, params: EnvParams):
         return spaces.Discrete(len(self.actions))
 
