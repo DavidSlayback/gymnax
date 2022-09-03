@@ -130,10 +130,8 @@ class Tuple(Space):
         return out_of_space == 0
 
 
-from gym import spaces as gspc
-
-
 def gymnax_space_to_gym_space(space: Space) -> gspc.Space:
+    """Convert Gymnax space to equivalent Gym space"""
     if isinstance(space, Discrete):
         return gspc.Discrete(space.n)
     elif isinstance(space, Box):

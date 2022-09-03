@@ -6,7 +6,6 @@ import gym
 import jax.random
 from gym.core import ActType, ObsType, RenderFrame
 from gym.vector.utils import batch_space
-import numpy as np
 from .spaces import gymnax_space_to_gym_space
 from .environment import Environment, EnvState, EnvParams
 from copy import deepcopy
@@ -173,4 +172,4 @@ class GymnaxToVectorGymWrapper(gym.vector.VectorEnv):
         o, self.env_state, r, d, info = self._env.step(
             step_key, self.env_state, action, self.env_params
         )
-        return o, r, d, d, info  # new step API has done and truncate
+        return o, r, d, d, info
