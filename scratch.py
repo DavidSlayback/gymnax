@@ -5,7 +5,7 @@ from gymnax.environments.gym import GymnaxToGymWrapper, GymnaxToVectorGymWrapper
 
 if __name__ == "__main__":
     B = 64  # batch size
-    env, env_params = gymnax.make("Tiger-pomdp")
+    env, env_params = gymnax.make("CarFlag-pomdp")
     e1 = GymnaxToGymWrapper(env)
     e2 = GymnaxToVectorGymWrapper(env, num_envs=64)
     o1 = e1.reset(seed=2)
