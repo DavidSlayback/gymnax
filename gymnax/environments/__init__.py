@@ -36,6 +36,7 @@ from .misc import (
 from .pomdps import (
     Tiger,
     CarFlag,
+    AUVNavigation,
 )
 
 __all__ = [
@@ -63,4 +64,5 @@ __all__ = [
     "PointRobot",
     "Tiger",
     "CarFlag",
+    "AUVNavigation"
 ]

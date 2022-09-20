@@ -24,6 +24,7 @@ from .environments import (
     MultistoryFourRooms,
     Tiger,
     CarFlag,
+    AUVNavigation,
 )
 
 # =============================================================================
@@ -93,6 +94,8 @@ def make(env_id: str, **env_kwargs):
         env = Tiger(**env_kwargs)
     elif env_id == "CarFlag-pomdp":
         env = CarFlag(**env_kwargs)
+    elif env_id == "AUVNavigation-pomdp":
+        env = AUVNavigation(**env_kwargs)
     else:
         raise ValueError("Environment ID is not registered.")
 
@@ -126,4 +129,5 @@ registered_envs = [
     "MultistoryFourRooms-misc",
     "Tiger-pomdp",
     "CarFlag-pomdp",
+    "AUVNavigation-pomdp",
 ]
