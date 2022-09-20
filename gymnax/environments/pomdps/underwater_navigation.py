@@ -33,6 +33,15 @@ class EnvParams:
 class AUVNavigation(environment.Environment):
     """Robot must navigate from to right border of environment, avoiding rocks"""
     def __init__(self, width: int = 12):
+        """2D underwater navigation domain.
+
+        Robot must navigate from start position (on left) to right border of map while avoiding rocks
+        Episode ends on hitting rock (-1 penalty) or border (+1 reward)
+        Robot can only observe its location at top and bottom of map, otherwise null obs
+
+        Args:
+            width: x width of map. Height is always 1 less
+        """
         midpoint = int((width - 1) // 2)
         self.yx = jnp.array([width - 1, width])  # y is always 1 less than x (last column is destination)
         self.domain = jnp.full(self.yx, CellState.empty, dtype=int)  # grid
