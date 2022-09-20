@@ -4,6 +4,7 @@ from .fourrooms import FourRooms
 from .meta_maze import MetaMaze
 from .point_robot import PointRobot
 from .multistory_fourrooms import MultistoryFourRooms
+from .taxi import Taxi
 
 __all__ = [
     "BernoulliBandit",
@@ -11,5 +12,6 @@ __all__ = [
     "FourRooms",
     "MetaMaze",
     "PointRobot",
-    "MultistoryFourRooms"
+    "MultistoryFourRooms",
+    "Taxi".
 ]

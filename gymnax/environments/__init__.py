@@ -31,6 +31,7 @@ from .misc import (
     MetaMaze,
     PointRobot,
     MultistoryFourRooms,
+    Taxi,
 )
 
 from .pomdps import (
@@ -62,7 +63,9 @@ __all__ = [
     "FourRooms",
     "MetaMaze",
     "PointRobot",
+    "MultistoryFourRooms",
     "Tiger",
     "CarFlag",
-    "AUVNavigation"
+    "AUVNavigation",
+    "Taxi"
 ]

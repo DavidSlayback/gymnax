@@ -25,6 +25,7 @@ from .environments import (
     Tiger,
     CarFlag,
     AUVNavigation,
+    Taxi,
 )
 
 # =============================================================================
@@ -88,6 +89,8 @@ def make(env_id: str, **env_kwargs):
         env = MetaMaze(**env_kwargs)
     elif env_id == "PointRobot-misc":
         env = PointRobot(**env_kwargs)
+    elif env_id == "Taxi-mist":
+        env = Taxi(**env_kwargs)
 
     # 5. POMDPs
     elif env_id == "Tiger-pomdp":
