@@ -1,30 +1,45 @@
-import matplotlib.pyplot as plt
-import matplotlib.animation as animation
 from typing import Optional
-from .vis_gym import init_gym, update_gym
-from .vis_minatar import init_minatar, update_minatar
-from .vis_circle import init_circle, update_circle
-from .vis_maze import init_maze, update_maze
+from typing import Sequence, Any
+
+import matplotlib.animation as animation
+import matplotlib.pyplot as plt
+
 from .vis_catch import init_catch, update_catch
+from .vis_circle import init_circle, update_circle
+from .vis_gym import init_gym, update_gym
+from .vis_maze import init_maze, update_maze
+from .vis_minatar import init_minatar, update_minatar
+from ..environments.environment import Environment, EnvState, EnvParams
+from ..registration import registered_envs
+
+# Specialized animation init and update functions for each environment
+gym_envs = ["Acrobot-v1", "CartPole-v1", "Pendulum-v1", "MountainCar-v0", "MountainCarContinuous-v0"]
+maze_envs = ["MetaMaze-misc", "FourRooms-misc"]
+minatar_envs = [env for env in registered_envs if 'MinAtar' in env]
+init_and_update_fns = {
+    **dict.fromkeys(gym_envs, (init_gym, update_gym)),
+    **dict.fromkeys(minatar_envs, (init_minatar, update_minatar)),
+    **dict.fromkeys(maze_envs, (init_maze, update_maze)),
+    "PointRobot-misc": (init_circle, update_circle),
+    "Catch-bsuite": (init_catch, update_catch),
+}
 
 
-class Visualizer(object):
-    def __init__(self, env, env_params, state_seq, reward_seq=None):
+class Visualizer:
+    def __init__(self, env: Environment, env_params: EnvParams, state_seq: Sequence[EnvState], reward_seq: Optional[Sequence[float]] = None):
         self.env = env
         self.env_params = env_params
         self.state_seq = state_seq
         self.reward_seq = reward_seq
+        self.anim_state: Any = None  # Most likely AxesImage, but can be Tuple (see vis_circle)
         self.fig, self.ax = plt.subplots(1, 1, figsize=(6, 5))
-        if env.name not in [
-            "Acrobot-v1",
-            "CartPole-v1",
-            "Pendulum-v1",
-            "MountainCar-v0",
-            "MountainCarContinuous-v0",
-        ]:
+        if env.name not in gym_envs:
             self.interval = 100
         else:
+            import gym
+            assert gym.__version__ == "0.19.0"  # use older gym and pyglet
             self.interval = 50
+        self._init_fn, self._update_fn = init_and_update_fns[env.name]
 
     def animate(
         self,
@@ -51,66 +66,11 @@ class Visualizer(object):
 
     def init(self):
         # Plot placeholder points
-        if self.env.name in [
-            "Acrobot-v1",
-            "CartPole-v1",
-            "Pendulum-v1",
-            "MountainCar-v0",
-            "MountainCarContinuous-v0",
-        ]:
-            import gym
-
-            # Animations have to use older gym version and pyglet!
-            assert gym.__version__ == "0.19.0"
-            self.im = init_gym(
-                self.ax, self.env, self.state_seq[0], self.env_params
-            )
-        elif self.env.name == "Catch-bsuite":
-            self.im = init_catch(
-                self.ax, self.env, self.state_seq[0], self.env_params
-            )
-        elif self.env.name in [
-            "Asterix-MinAtar",
-            "Breakout-MinAtar",
-            "Freeway-MinAtar",
-            "Seaquest-MinAtar",
-            "SpaceInvaders-MinAtar",
-        ]:
-            self.im = init_minatar(self.ax, self.env, self.state_seq[0])
-        elif self.env.name == "PointRobot-misc":
-            self.im = init_circle(
-                self.ax, self.env, self.state_seq[0], self.env_params
-            )
-        elif self.env.name in ["MetaMaze-misc", "FourRooms-misc"]:
-            self.im = init_maze(
-                self.ax, self.env, self.state_seq[0], self.env_params
-            )
+        self.anim_state = self._init_fn(self.ax, self.env, self.state_seq[0], self.env_params)
         self.fig.tight_layout(rect=[0.02, 0.03, 1.0, 0.95])
 
-    def update(self, frame):
-        if self.env.name in [
-            "Acrobot-v1",
-            "CartPole-v1",
-            "Pendulum-v1",
-            "MountainCar-v0",
-            "MountainCarContinuous-v0",
-        ]:
-            self.im = update_gym(self.im, self.env, self.state_seq[frame])
-        elif self.env.name == "Catch-bsuite":
-            self.im = update_catch(self.im, self.env, self.state_seq[frame])
-        elif self.env.name in [
-            "Asterix-MinAtar",
-            "Breakout-MinAtar",
-            "Freeway-MinAtar",
-            "Seaquest-MinAtar",
-            "SpaceInvaders-MinAtar",
-        ]:
-            update_minatar(self.im, self.env, self.state_seq[frame])
-        elif self.env.name == "PointRobot-misc":
-            self.im = update_circle(self.im, self.env, self.state_seq[frame])
-        elif self.env.name in ["MetaMaze-misc", "FourRooms-misc"]:
-            self.im = update_maze(self.im, self.env, self.state_seq[frame])
-
+    def update(self, frame: int):
+        self.anim_state = self._update_fn(self.anim_state, self.env, self.state_seq[frame])
         if self.reward_seq is None:
             self.ax.set_title(
                 f"{self.env.name} - Step {frame + 1}", fontsize=15

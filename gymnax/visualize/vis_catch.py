@@ -1,10 +1,16 @@
+from typing import Tuple, Optional
+
 import numpy as np
+from matplotlib.pyplot import Annotation, Axes
+
+from ..environments.environment import Environment
 
 
-def init_catch(ax, env, state, params):
-    im = ax.imshow(
-        np.zeros((env.rows, env.columns)), cmap="Greys", vmin=0, vmax=1
-    )
+def init_catch(
+    ax: Axes, env: Environment, state, params: Optional = None
+) -> Tuple[Annotation, Annotation]:
+    """Initialize agent and falling ball as text in a grid"""
+    im = ax.imshow(np.zeros((env.rows, env.columns)), cmap="Greys", vmin=0, vmax=1)
     anno_paddle = ax.annotate(
         "P",
         fontsize=20,
@@ -24,8 +30,11 @@ def init_catch(ax, env, state, params):
     return (anno_paddle, anno_ball)
 
 
-def update_catch(im, env, state):
-    anno_paddle, anno_ball = im
+def update_catch(
+    anim_state: Tuple[Annotation, Annotation], env: Environment, state
+) -> Tuple[Annotation, Annotation]:
+    """Move agent and falling ball"""
+    anno_paddle, anno_ball = anim_state
 
     xy_p = (state.paddle_x, state.paddle_y)
     xytext_p = (state.paddle_x - 0.3, state.paddle_y + 0.25)

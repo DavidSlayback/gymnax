@@ -87,7 +87,7 @@ class MultistoryFourRooms(environment.Environment):
             pos_fixed: y,x position of agent (always bottom floor)
         """
         assert num_floors >= 1, "Must have at least 1 floor!"
-        assert obs_type in ['vector_mdp', 'adjacent', 'grid', 'visual', '']
+        assert obs_type in ['vector_mdp', 'discrete_mdp', 'adjacent', 'grid', 'visual']
         super().__init__()
         self.env_map = bool_map_to_multistory(string_to_bool_map(four_rooms_map), num_floors)
         self.valid_map = (self.env_map == 0)  # Agent can go anywhere without a wall

@@ -1,7 +1,14 @@
+from typing import Optional
+
 import numpy as np
+from matplotlib.image import AxesImage
+from matplotlib.pyplot import Axes
+
+from ..environments.environment import Environment
 
 
-def init_minatar(ax, env, state):
+def init_minatar(ax: Axes, env: Environment, state, params: Optional) -> AxesImage:
+    """Initialize MinAtar rendering window"""
     import seaborn as sns
     import matplotlib.colors as colors
 
@@ -24,11 +31,13 @@ def init_minatar(ax, env, state):
     )
 
 
-def update_minatar(im, env, state):
+def update_minatar(anim_state: AxesImage, env: Environment, state) -> AxesImage:
+    """Update positions of entities"""
     obs = env.get_obs(state)
     n_channels = env.obs_shape[-1]
     numerical_state = (
         np.amax(obs * np.reshape(np.arange(n_channels) + 1, (1, 1, -1)), 2)
         + 0.5
     )
-    im.set_data(numerical_state)
+    anim_state.set_data(numerical_state)
+    return anim_state

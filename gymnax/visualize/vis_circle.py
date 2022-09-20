@@ -1,7 +1,13 @@
+from typing import Tuple
+
 import numpy as np
+from matplotlib.pyplot import Axes, Circle
+
+from ..environments.environment import Environment
 
 
-def init_circle(ax, env, state, params):
+def init_circle(ax: Axes, env: Environment, state, params) -> Tuple[Circle, Circle]:
+    """Initialize circles for agent and goal"""
     import matplotlib.pyplot as plt
 
     angles = np.linspace(0, np.pi, 100)
@@ -22,12 +28,13 @@ def init_circle(ax, env, state, params):
         (state.pos[0], state.pos[1]), radius=0.05, alpha=1, color="red"
     )
     ax.add_artist(anno_agent)
-    return [anno_goal, anno_agent]
+    return (anno_goal, anno_agent)
 
 
-def update_circle(im, env, state):
-    anno_goal = im[0]
-    anno_agent = im[1]
+def update_circle(anim_state: Tuple[Circle, Circle], env: Environment, state) -> Tuple[Circle, Circle]:
+    """Update agent and goal positions"""
+    anno_goal = anim_state[0]
+    anno_agent = anim_state[1]
     anno_goal.center = (state.goal[0], state.goal[1])
     anno_agent.center = (state.pos[0], state.pos[1])
-    return [anno_goal, anno_agent]
+    return (anno_goal, anno_agent)

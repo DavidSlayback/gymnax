@@ -1,8 +1,13 @@
-import numpy as np
 import gym
+import numpy as np
+from matplotlib.image import AxesImage
+from matplotlib.pyplot import Axes
+
+from ..environments.environment import Environment
 
 
-def set_gym_params(gym_env, env_name, params):
+def set_gym_params(gym_env: gym.Env, env_name: str, params) -> None:
+    """Set gym.Env instance parameters from EnvParams"""
     if env_name == "Acrobot-v1":
         gym_env.env.LINK_LENGTH_1 = params.link_length_1
         gym_env.env.LINK_LENGTH_2 = params.link_length_2
@@ -22,7 +27,8 @@ def set_gym_params(gym_env, env_name, params):
     return
 
 
-def get_gym_state(state, env_name):
+def get_gym_state(state, env_name) -> np.ndarray:
+    """Get gym.Env state equivalent from Gymnax EnvState"""
     if env_name == "Acrobot-v1":
         return np.array(
             [
@@ -42,7 +48,8 @@ def get_gym_state(state, env_name):
         return np.array([state.position, state.velocity])
 
 
-def init_gym(ax, env, state, params):
+def init_gym(ax: Axes, env: Environment, state, params) -> AxesImage:
+    """Use gym.Env rendering to render gymnax environment"""
     if env.name == "Pendulum-v1":
         gym_env = gym.make("Pendulum-v0")
     else:
@@ -60,7 +67,7 @@ def init_gym(ax, env, state, params):
     return ax.imshow(rgb_array)
 
 
-def update_gym(im, env, state):
+def update_gym(anim_state: AxesImage, env: Environment, state) -> AxesImage:
     if env.name == "Pendulum-v1":
         gym_env = gym.make("Pendulum-v0")
     else:
@@ -70,6 +77,6 @@ def update_gym(im, env, state):
         gym_env.env.last_u = gym_state[-1]
     gym_env.env.state = gym_state
     rgb_array = gym_env.render(mode="rgb_array")
-    im.set_data(rgb_array)
+    anim_state.set_data(rgb_array)
     gym_env.close()
-    return im
+    return anim_state
