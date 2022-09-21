@@ -33,7 +33,7 @@ def create_original_hallway_options() -> Sequence[Any]:
     return options
 
 
-def onestep_manhattan_macro(c: chex.Array, goal: chex.Array) -> Tuple[int, bool]:
+def onestep_manhattan_macro(c: chex.Array, goal: chex.Array) -> Tuple[int, bool, int]:
     """Given a goal that can be reached without worrying about obstacles go towards it
 
     Useful for moving hallway to nearest hallway (e.g., E -> S)
@@ -47,12 +47,22 @@ def onestep_manhattan_macro(c: chex.Array, goal: chex.Array) -> Tuple[int, bool]
     Returns:
         a: Next action -1 no action, 0-N, 1-E, 2-W, 3-S
         t: Termination if actually at goal (just planning to take action could fail)
+        time_elpased: Unused
     """
     t = jax.lax.select((c == goal).all(-1), True, False)
     a = jax.lax.select(t, -1, jnp.linalg.norm((c + FourRooms.directions) - goal, axis=-1, ord=1).argmin(-1))
-    return a, t
+    return a, t, 0
 
 
+def primitive_macro(a: int) -> Tuple[int, bool, int]:
+    """Primitive macro action. Always terminates, always same action as input"""
+    return a, True, 0
+
+
+def n_step_macro(t: int, a: int, n: int) -> Tuple[int, bool, int]:
+    """N-step macro action. Terminates after n-steps of same action"""
+    t = t + 1
+    return a, jax.lax.select(t >= n, True, False), t
 
 
 
