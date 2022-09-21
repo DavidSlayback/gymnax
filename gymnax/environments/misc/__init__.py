@@ -13,5 +13,5 @@ __all__ = [
     "MetaMaze",
     "PointRobot",
     "MultistoryFourRooms",
-    "Taxi".
+    "Taxi",
 ]

@@ -1,4 +1,5 @@
 import jax
+import numpy as np
 import jax.numpy as jnp
 from jax import lax
 from gymnax.environments import environment, spaces
@@ -21,32 +22,25 @@ class EnvParams:
     resample_goal_pos: bool = False
     max_steps_in_episode: int = 500
 
-
-four_rooms_map = """
-xxxxxxxxxxxxx
-x     x     x
-x     x     x
-x           x
-x     x     x
-x     x     x
-xx xxxx     x
-x     xxx xxx
-x     x     x
-x     x     x
-x           x
-x     x     x
-xxxxxxxxxxxxx"""
-
-
-def string_to_bool_map(str_map: str) -> chex.Array:
-    """Convert string map into boolean walking map."""
-    bool_map = []
-    for row in str_map.split("\n")[1:]:
-        bool_map.append([r == " " for r in row])
-    return jnp.array(bool_map)
+# Assign number to each room
+numbered_four_rooms_map = np.array([
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1],
+    [-1, 1, 1, 1, 1, 1, -1, 2, 2, 2, 2, 2, -1],
+    [-1, 1, 1, 1, 1, 1, -1, 2, 2, 2, 2, 2, -1],
+    [-1, 1, 1, 1, 1, 1, 0, 2, 2, 2, 2, 2, -1],
+    [-1, 1, 1, 1, 1, 1, -1, 2, 2, 2, 2, 2, -1],
+    [-1, 1, 1, 1, 1, 1, -1, 2, 2, 2, 2, 2, -1],
+    [-1, -1, 0, -1, -1, -1, -1, 2, 2, 2, 2, 2, -1],
+    [-1, 3, 3, 3, 3, 3, -1, -1, -1, 0, -1, -1, -1],
+    [-1, 3, 3, 3, 3, 3, -1, 4, 4, 4, 4, 4, -1],
+    [-1, 3, 3, 3, 3, 3, -1, 4, 4, 4, 4, 4, -1],
+    [-1, 3, 3, 3, 3, 3, 0, 4, 4, 4, 4, 4, -1],
+    [-1, 3, 3, 3, 3, 3, -1, 4, 4, 4, 4, 4, -1],
+    [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]])
 
 
 class FourRooms(environment.Environment):
+    directions = jnp.array([[-1, 0], [0, 1], [1, 0], [0, -1]])  # N, E, S, W
     """
     JAX Compatible version of Four Rooms environment (Sutton et al., 1999).
     Source: Comparable to https://github.com/howardh/gym-fourrooms
@@ -56,11 +50,11 @@ class FourRooms(environment.Environment):
     def __init__(
         self,
         use_visual_obs: bool = False,
-        goal_fixed: chex.Array = jnp.array([8, 9]),
+        goal_fixed: chex.Array = jnp.array([7, 9]),
         pos_fixed: chex.Array = jnp.array([4, 1]),
     ):
         super().__init__()
-        self.env_map = string_to_bool_map(four_rooms_map)
+        self.env_map = (jnp.array(numbered_four_rooms_map) != -1)
         self.occupied_map = 1 - self.env_map
         coords = []
         for y in range(self.env_map.shape[0]):
@@ -68,7 +62,6 @@ class FourRooms(environment.Environment):
                 if self.env_map[y, x]:  # If it's an open space
                     coords.append([y, x])
         self.coords = jnp.array(coords)
-        self.directions = jnp.array([[-1, 0], [0, 1], [1, 0], [0, -1]])
 
         # Any open space in the map can be a goal for the agent
         self.available_goals = self.coords
