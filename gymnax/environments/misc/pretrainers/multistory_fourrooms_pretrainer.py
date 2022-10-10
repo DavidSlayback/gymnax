@@ -154,13 +154,13 @@ class MultistoryFourRoomsPretrainer(MultistoryFourRooms):
         elif self.obs_fn == "discrete_mdp":
             spaces.Discrete(self.coord_to_state_map.max())
         elif self.obs_fn == "adjacent":
-            return spaces.Box(0, 4, (4,), jnp.int32)
+            return spaces.Box(0, 5, (4,), jnp.int32)
         elif self.obs_fn == "visual":
             return spaces.Box(0, 1, (13, 13, 2), jnp.float32)
         elif self.obs_fn == "room":
             return spaces.Discrete(self.rooms_map.max())
         else:
-            return spaces.Box(0, 4, (3, 3), jnp.int32)
+            return spaces.Box(0, 5, (3, 3), jnp.int32)
 
 
 def reset_pos(
