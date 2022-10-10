@@ -31,6 +31,7 @@ from .misc import (
     MetaMaze,
     PointRobot,
     MultistoryFourRooms,
+    MultistoryFourRoomsPretrainer,
     Taxi,
 )
 
@@ -64,6 +65,7 @@ __all__ = [
     "MetaMaze",
     "PointRobot",
     "MultistoryFourRooms",
+    "MultistoryFourRoomsPretrainer",
     "Tiger",
     "CarFlag",
     "AUVNavigation",
